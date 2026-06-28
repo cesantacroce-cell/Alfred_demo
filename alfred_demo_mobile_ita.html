@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alfred, anteprima interattiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,560;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14120f; --accent:#c9a25e; --lamp:#d8ad62; --text:#e9e6df; --cream:#f4efe6; --muted:#8c887e;
+    --bezel:#000; --edge:#272521;
+    --in:#242321; --out:#1f4a3a; --alfred:#23252a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:#070604; color:var(--text); font-family:"Inter",system-ui,sans-serif; min-height:100dvh; margin:0; padding:0; display:flex; justify-content:center; align-items:center}
+  .head{text-align:center; margin-bottom:18px}
+  .mark{font-family:"Fraunces",serif; font-weight:560; font-size:clamp(26px,4vw,40px); letter-spacing:.5px; color:var(--cream); line-height:1}
+  .mark .dot{color:var(--accent)}
+  .anteprima{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-top:8px}
+
+  .phone{width:100%; max-width:430px; height:100dvh; background:none; padding:0; box-shadow:0 0 0 1px rgba(201,162,94,.1)}
+  .screen{position:relative; border-radius:0; padding-top:env(safe-area-inset-top); overflow:hidden; height:100dvh; border-radius:0;
+    background:radial-gradient(120% 26% at 50% 0%, rgba(216,173,98,.16) 0%, transparent 44%), linear-gradient(180deg,#171410,#0e0c09)}
+  .view{display:none; flex-direction:column; height:100%}
+  .view.active{display:flex}
+
+  .statusbar{display:flex; justify-content:space-between; align-items:center; padding:11px 22px 4px; font-size:12.5px; color:var(--cream); font-weight:600}
+  .statusbar .right{font-size:11px; letter-spacing:.4px; color:rgba(244,239,230,.65)}
+
+  /* home */
+  .lamp{position:absolute; top:52px; left:50%; transform:translateX(-50%); width:7px; height:7px; border-radius:50%; background:var(--lamp); box-shadow:0 0 18px 6px rgba(216,173,98,.55),0 0 44px 15px rgba(216,173,98,.2)}
+  .lampword{position:absolute; top:68px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:rgba(216,173,98,.6)}
+  .hall{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:0 28px; text-align:center}
+  .greet{font-family:"Fraunces",serif; font-weight:300; font-size:29px; color:var(--cream); line-height:1.18}
+  .greet b{font-weight:560}
+  .status{margin-top:14px; color:var(--muted); font-size:13.5px; font-style:italic; font-family:"Fraunces",serif}
+  .tray{margin-top:26px; width:100%; background:linear-gradient(180deg,#211c14,#191510); border:1px solid rgba(201,162,94,.3); border-radius:18px; padding:15px; text-align:left; box-shadow:0 16px 30px -16px rgba(0,0,0,.7)}
+  .tray .tk{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:7px}
+  .tray .tk .glow{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px 2px rgba(201,162,94,.5)}
+  .tray .bodyt{font-family:"Fraunces",serif; font-size:15.5px; color:var(--cream); line-height:1.4; margin-top:9px}
+  .tray .acts{display:flex; gap:9px; margin-top:13px}
+  .tray .acts span{flex:1; text-align:center; font-size:12.5px; padding:8px; border-radius:11px}
+  .tray .later{color:var(--muted); border:1px solid rgba(140,136,126,.3)} .tray .ok{color:#1a1305; background:var(--accent); font-weight:600}
+  .doors{padding:16px 22px 22px}
+  .doors .lbl{font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); text-align:center; margin-bottom:13px}
+  .people{display:flex; justify-content:center; gap:14px}
+  .person{display:flex; flex-direction:column; align-items:center; gap:7px; background:none; border:none; cursor:pointer; font:inherit}
+  .face{position:relative; width:58px; height:58px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-align:center; font-family:"Fraunces",serif; font-size:12px; font-weight:560; line-height:1.05; padding:4px; color:var(--cream); border:1px solid rgba(255,255,255,.08); transition:transform .15s}
+  .person:hover .face,.person:focus-visible .face{transform:translateY(-3px)}
+  .face.c{background:radial-gradient(circle at 35% 30%,#3c536d,#26384a)}
+  .face.g{background:radial-gradient(circle at 35% 30%,#5e4a66,#3b2f42)}
+  .face.e{background:radial-gradient(circle at 35% 30%,#4d6038,#344223)}
+  .face.f{background:radial-gradient(circle at 35% 30%,#6b5a3a,#403524)}
+  .face .lock{position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; background:#15110d; border:1px solid rgba(201,162,94,.45); display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--accent)}
+  .pname{font-size:11.5px; color:var(--text)} .pnote{font-size:9px; color:var(--muted)}
+
+  /* chat views */
+  .chathead{display:flex; align-items:center; gap:10px; padding:8px 14px 11px; border-bottom:1px solid rgba(201,162,94,.12)}
+  .back{background:none;border:none;cursor:pointer; color:var(--accent); font-size:22px; line-height:1; padding:0 2px}
+  .av{width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:"Fraunces",serif; font-size:15px; color:var(--cream); flex:none; position:relative}
+  .av.c{background:radial-gradient(circle at 35% 30%,#3c536d,#26384a)} .av.g{background:radial-gradient(circle at 35% 30%,#5e4a66,#3b2f42)}
+  .av.f{background:radial-gradient(circle at 35% 30%,#6b5a3a,#403524)} .av.e{background:radial-gradient(circle at 35% 30%,#4d6038,#344223)}
+  .av .l{position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:50%;background:var(--lamp);box-shadow:0 0 8px 2px rgba(216,173,98,.6)}
+  .ch-meta{flex:1;min-width:0} .ch-name{font-family:"Fraunces",serif;font-weight:560;font-size:15px;color:var(--cream)} .ch-sub{font-size:11px;color:var(--muted)}
+  .ch-ic{color:var(--muted);font-size:15px}
+
+  .msgs{flex:1; overflow-y:auto; padding:13px 11px; display:flex; flex-direction:column; gap:3px}
+  .daypill{align-self:center; color:var(--muted); font-size:10px; padding:4px 11px; margin:8px 0 2px; letter-spacing:.12em; text-transform:uppercase}
+  .row{display:flex; margin-top:7px}
+  .row.left{justify-content:flex-start} .row.right{justify-content:flex-end} .row.reacted{margin-bottom:14px}
+  .bub{position:relative; max-width:83%; padding:8px 11px 5px; border-radius:15px; font-size:14px; line-height:1.42}
+  .bub .who{font-size:11px; font-weight:600; margin-bottom:2px; display:block}
+  .who.ces{color:#8ab0d4} .who.gab{color:#c7a6d6} .who.ett{color:#a9cd86}
+  .who.alf{color:var(--accent); font-family:"Fraunces",serif; font-style:italic; font-weight:400; font-size:12.5px}
+  .bub.in{background:var(--in); border-top-left-radius:5px; color:var(--text)}
+  .bub.out{background:var(--out); border-top-right-radius:5px; color:#e7f7ef}
+  .bub.alf{background:var(--alfred); border-top-left-radius:5px; color:var(--cream); border-left:2.5px solid var(--accent)}
+  .meta-line{display:flex; align-items:center; gap:4px; justify-content:flex-end; margin-top:2px}
+  .time{font-size:10px; color:rgba(244,239,230,.4)} .tick{font-size:11px; color:var(--accent)}
+  .src{font-size:10px; color:var(--muted); font-style:italic; margin-top:3px}
+  .topic{margin-top:6px; display:flex; flex-wrap:wrap; gap:5px}
+  .topic span{font-size:9.5px; letter-spacing:.02em; color:rgba(201,162,94,.78); background:rgba(201,162,94,.09); border:1px solid rgba(201,162,94,.22); border-radius:7px; padding:1px 6px}
+  .mk{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:auto}
+  .mk.on{background:var(--accent)} .mk.half{background:linear-gradient(90deg,var(--accent) 0 50%,transparent 50% 100%); border:1.5px solid var(--accent)} .mk.soon{border:1.5px solid var(--accent)}
+  .react{position:absolute; bottom:-13px; right:10px; background:#15110d; border:1px solid rgba(201,162,94,.25); border-radius:13px; padding:1px 6px 2px; font-size:13px; box-shadow:0 2px 6px rgba(0,0,0,.5)}
+
+  .card{align-self:center; width:90%; background:#1a1916; border:1px solid rgba(201,162,94,.3); border-radius:15px; padding:13px; margin:9px 0 3px}
+  .card h4{font-family:"Fraunces",serif; font-size:14px; color:var(--cream); font-weight:560; margin-bottom:9px; display:flex; align-items:center; gap:7px}
+  .card h4 .dm{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 7px 1px rgba(201,162,94,.5)}
+  .frow{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:5px 0; border-bottom:1px solid #2a2823}
+  .frow .lab{color:var(--muted)} .frow .val{color:var(--cream); background:#0f0e0c; padding:3px 9px; border-radius:8px} .frow .val.empty{color:#6b6052}
+  .save{margin-top:10px; width:100%; background:var(--accent); color:#1a1305; border:none; border-radius:10px; padding:8px; font:inherit; font-weight:600; font-size:13px}
+
+  .inputbar{display:flex; align-items:center; gap:10px; padding:9px 13px; border-top:1px solid rgba(201,162,94,.12)}
+  .inputbar .plus{color:var(--muted); font-size:21px} .field{flex:1; background:#15130f; border-radius:20px; padding:8px 14px; color:var(--muted); font-size:13px} .inputbar .ic{color:var(--muted); font-size:15px}
+
+  .locked{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; gap:14px}
+  .locked .big{font-size:34px; color:var(--accent)}
+  .locked h3{font-family:"Fraunces",serif; font-size:19px; color:var(--cream); font-weight:560; line-height:1.3}
+  .locked p{font-size:13px; color:var(--muted); line-height:1.55}
+  .toggle{margin-top:6px; display:inline-flex; align-items:center; gap:9px; font-size:12.5px; color:var(--muted)}
+  .sw{width:38px; height:22px; border-radius:20px; background:#2a2823; border:1px solid var(--edge); position:relative}
+  .sw::after{content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted)}
+
+  .ghostwrap{padding:0 13px 14px}
+  .ghostbtn{width:100%; font:inherit; font-size:12px; color:var(--accent); background:transparent; border:1px solid rgba(201,162,94,.4); border-radius:14px; padding:8px; cursor:pointer}
+  .ghostbtn:hover{background:rgba(201,162,94,.1)}
+  .ghost{max-height:0; overflow:hidden; opacity:0; transition:max-height .4s,opacity .35s,margin .4s}
+  .ghost.show{max-height:200px; opacity:1; margin-top:10px}
+  .ghost .gb{background:transparent; border:1px dashed #6b4a3a; color:#b98c7c; border-radius:13px; padding:8px 11px; font-size:13px; text-decoration:line-through; text-decoration-color:#7a5346}
+  .ghost .cap{font-size:11px; color:#9a7565; margin-top:7px; line-height:1.45}
+
+  .panel{max-width:352px; margin:20px auto 0; text-align:center}
+  .legend{display:flex; gap:14px; justify-content:center; font-size:12px; color:var(--muted); margin-bottom:10px}
+  .legend b{color:var(--text); font-weight:500}
+  .pip{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle}
+  .pip.on{background:var(--accent)} .pip.half{background:linear-gradient(90deg,var(--accent) 0 50%,transparent 50% 100%); border:1.5px solid var(--accent)} .pip.soon{border:1.5px solid var(--accent)}
+  .hint{font-size:12px; color:var(--muted); font-style:italic; font-family:"Fraunces",serif}
+
+  .tray .acts span{cursor:pointer; transition:filter .15s} .tray .acts span:hover{filter:brightness(1.15)}
+  .overlay{position:absolute; inset:0; background:rgba(8,6,4,.74); display:none; align-items:flex-end; z-index:30}
+  .overlay.show{display:flex}
+  .calbox{width:100%; background:#1a1611; border-top:1px solid rgba(201,162,94,.3); border-radius:24px 24px 0 0; padding:18px 16px 16px; animation:up .25s ease}
+  @keyframes up{from{transform:translateY(34px);opacity:.4}to{transform:none;opacity:1}}
+  .calhead{font-family:"Fraunces",serif; font-size:16px; color:var(--cream); text-align:center; margin-bottom:13px}
+  .weekdays{display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:10px; color:var(--muted); text-align:center; margin-bottom:6px}
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .day{aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--text); border-radius:9px; cursor:pointer; background:#211c15}
+  .day.empty{background:none; cursor:default} .day:hover:not(.empty){background:#2c251a} .day.sel{background:var(--accent); color:#1a1305; font-weight:600}
+  .timewrap{margin-top:15px; display:none} .timewrap.show{display:block}
+  .tlabel{font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+  .times{display:flex; flex-wrap:wrap; gap:7px}
+  .tchip{font-size:13px; color:var(--text); background:#211c15; border:1px solid var(--edge); border-radius:9px; padding:7px 12px; cursor:pointer} .tchip:hover{background:#2c251a} .tchip.sel{background:var(--accent); color:#1a1305; font-weight:600; border-color:var(--accent)}
+  .calfoot{display:flex; gap:9px; margin-top:16px}
+  .calfoot button{flex:1; font:inherit; font-size:13px; border-radius:11px; padding:10px; cursor:pointer; border:1px solid var(--edge); background:transparent; color:var(--muted)}
+  .calfoot .savebtn{background:var(--accent); color:#1a1305; font-weight:600; border-color:var(--accent); opacity:.45; pointer-events:none} .calfoot .savebtn.ready{opacity:1; pointer-events:auto}
+  .tray.sched{background:linear-gradient(180deg,#1d2419,#161c12); border-color:rgba(155,194,120,.4)}
+  .avanti{margin-top:13px; width:100%; background:transparent; border:1px solid rgba(201,162,94,.5); color:var(--accent); border-radius:12px; padding:9px; font:inherit; font-size:13px; cursor:pointer} .avanti:hover{background:rgba(201,162,94,.1)}
+
+  .day.today{position:relative} .day.today::after{content:""; position:absolute; bottom:5px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--accent)}
+  .day.today.sel::after{background:#1a1305}
+  .wheel{position:relative; height:132px; overflow:hidden; border-top:1px solid var(--edge); border-bottom:1px solid var(--edge); margin-top:4px}
+  .wheel::before,.wheel::after{content:""; position:absolute; left:0; right:0; height:50px; pointer-events:none; z-index:2}
+  .wheel::before{top:0; background:linear-gradient(180deg,#1a1611,rgba(26,22,17,0))}
+  .wheel::after{bottom:0; background:linear-gradient(0deg,#1a1611,rgba(26,22,17,0))}
+  .wheel .sel-band{position:absolute; top:50px; left:0; right:0; height:32px; border-top:1px solid rgba(201,162,94,.35); border-bottom:1px solid rgba(201,162,94,.35); z-index:1; pointer-events:none}
+  .wheel .scroller{height:132px; overflow-y:scroll; scroll-snap-type:y mandatory; padding:50px 0; text-align:center; scrollbar-width:none}
+  .wheel .scroller::-webkit-scrollbar{display:none}
+  .wheel .opt{height:32px; line-height:32px; font-size:17px; color:var(--muted); scroll-snap-align:center; transition:color .15s,font-weight .15s} .wheel .opt.on{color:var(--cream); font-weight:600; font-family:"Fraunces",serif}
+
+  .infobtn{position:fixed; bottom:16px; right:16px; z-index:60; width:34px; height:34px; border-radius:50%; background:rgba(26,22,17,.9); border:1px solid rgba(201,162,94,.45); color:var(--accent); font-family:"Fraunces",serif; font-style:italic; font-size:16px; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.5)}
+  .legpop{position:fixed; bottom:58px; right:16px; z-index:60; background:#1a1611; border:1px solid var(--edge); border-radius:13px; padding:13px 15px; display:none; max-width:240px; font-size:12px; color:var(--muted); box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  .legpop.show{display:block}
+  .legrow{display:flex; align-items:center; gap:8px; padding:3px 0}
+  .legrow b{color:var(--text); font-weight:500}
+  .legrow.lk{margin-top:7px; border-top:1px solid var(--edge); padding-top:8px; line-height:1.45}
+</style>
+</head>
+<body>
+  <div class="phone"><div class="screen">
+
+    <!-- HOME / ATRIO -->
+    <div class="view active" id="home">
+      <div class="statusbar"><span>18:38</span><span class="right">5G &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="lamp"></div><div class="lampword">sera</div>
+      <div class="hall">
+        <div class="greet">Buonasera,<br><b>Cesare</b>.</div>
+        <div class="status">Tutto in ordine. Una cosa, se ha un momento.</div>
+        <div class="tray" id="spunto">
+          <div class="tk"><span class="glow"></span>uno spunto</div>
+          <div class="bodyt">Oggi Ettore ha fatto bene una verifica. Due parole stasera gli farebbero piacere.</div>
+          <div class="acts"><span class="later" onclick="openCal()">Piu' tardi</span><span class="ok" onclick="dismissSpunto()">Ci penso io</span></div>
+        </div>
+      </div>
+      <div class="doors">
+        <div class="lbl">la famiglia</div>
+        <div class="people">
+          <button class="person" onclick="show('cesare')"><div class="face c">Cesare</div></button>
+          <button class="person" onclick="show('gabriele')"><div class="face g">Gabriele</div></button>
+          <button class="person" onclick="show('ettore')"><div class="face e">Ettore<span class="lock">&#128274;</span></div></button>
+          <button class="person" onclick="show('famiglia')"><div class="face f">Famiglia</div></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAMIGLIA (gruppo) -->
+    <div class="view" id="famiglia">
+      <div class="statusbar"><span>18:38</span><span class="right">5G &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="chathead"><button class="back" onclick="show('home')">&#8249;</button><div class="av f">&#9974;</div>
+        <div class="ch-meta"><div class="ch-name">Famiglia</div><div class="ch-sub">Cesare, Gabriele, Ettore</div></div><div class="ch-ic">&#9974;</div></div>
+      <div class="msgs">
+        <div class="daypill">Oggi</div>
+        <div class="row right"><div class="bub out"><span class="who ces">Cesare</span>no cena stasera, appena fix un meeting con gli investitori 🙈
+          <div class="meta-line"><span class="time">18:30</span><span class="tick">&#10003;&#10003;</span></div></div></div>
+        <div class="row left"><div class="bub in"><span class="who gab">Gabriele</span>in bocca al lupo 🍀<div class="meta-line"><span class="time">18:31</span></div></div></div>
+        <div class="row left"><div class="bub in"><span class="who ett">Ettore</span>ok allora stasera torno col driver<div class="meta-line"><span class="time">18:31</span></div></div></div>
+        <div class="row left"><div class="bub in"><span class="who ett">Ettore</span>ah, e la verifica di mate e' andata bene 😄<div class="meta-line"><span class="time">18:32</span></div></div></div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Annotato, sir. Segno la sua assenza a cena, e il rientro di Ettore col driver e' gia' in agenda.
+          <div class="topic"><span>agenda · Cesare</span><span>agenda · Ettore</span></div>
+            <div class="meta-line"><span class="mk on"></span><span class="time">18:32</span></div></div></div>
+      </div>
+      <div class="ghostwrap">
+        <button class="ghostbtn" onclick="toggleGhost(this)">Cosa farebbe un assistente qualunque ›</button>
+        <div class="ghost"><div class="gb">⚠️ PROMEMORIA GRUPPO: Cesare assente · Ettore rientro 19:00 · driver · padel a rischio</div>
+          <div class="cap">Un bollettino che nessuno legge. Alfred non fa il vigile: parla piano, in privato, solo a chi serve.</div></div>
+      </div>
+    </div>
+
+    <!-- CESARE -->
+    <div class="view" id="cesare">
+      <div class="statusbar"><span>18:38</span><span class="right">5G &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="chathead"><button class="back" onclick="show('home')">&#8249;</button><div class="av c">C</div>
+        <div class="ch-meta"><div class="ch-name">Cesare</div><div class="ch-sub">il suo filo con Alfred</div></div><div class="ch-ic">&#9974;</div></div>
+      <div class="msgs">
+        <div class="daypill">Ieri sera</div>
+        <div class="row left reacted"><div class="bub alf"><span class="who alf">Alfred</span>Per le 20 ho in agenda il suo padel, non la riunione. Cancello il padel e lo sostituisco con la riunione?
+          <div class="topic"><span>agenda · Cesare</span></div>
+            <div class="meta-line"><span class="mk half"></span><span class="time">18:33</span></div><span class="react">👍</span></div></div>
+        <div class="card"><h4><span class="dm"></span>Nuovo impegno in agenda</h4>
+          <div class="frow"><span class="lab">Titolo</span><span class="val">Riunione investitori</span></div>
+          <div class="frow"><span class="lab">Quando</span><span class="val">Oggi, 20:00</span></div>
+          <div class="frow"><span class="lab">Note</span><span class="val empty">aggiungi&#8230;</span></div>
+          <button class="save">Salva in agenda</button></div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Fatto, padel sostituito. Avviso io il gruppo WhatsApp <b>Crazy4padel</b> che stasera salta?
+          <div class="topic"><span>agenda · Cesare</span></div>
+            <div class="meta-line"><span class="mk soon"></span><span class="time">18:34</span></div></div></div>
+        <div class="row right"><div class="bub out">done 😅<div class="meta-line"><span class="time">18:34</span><span class="tick">&#10003;&#10003;</span></div></div></div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Perfetto, allora non mando nulla.
+          <div class="meta-line"><span class="mk soon"></span><span class="time">18:34</span></div></div></div>
+        <div class="daypill" id="cesDay">Domani mattina</div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Buongiorno, sir. Un pensiero per stamattina: ieri Ettore ha fatto la verifica di matematica ed e' andata bene 📚 Due parole sue gli farebbero piacere.
+          <div class="topic"><span>scuola · Ettore</span></div>
+            <div class="meta-line"><span class="mk half" id="cesPip"></span><span class="time" id="cesTime">07:01</span></div></div></div>
+      </div>
+      <div class="inputbar"><span class="plus">+</span><div class="field">Messaggio</div><span class="ic">&#127908;</span></div>
+    </div>
+
+    <!-- GABRIELE -->
+    <div class="view" id="gabriele">
+      <div class="statusbar"><span>18:38</span><span class="right">5G &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="chathead"><button class="back" onclick="show('home')">&#8249;</button><div class="av g">G</div>
+        <div class="ch-meta"><div class="ch-name">Gabriele</div><div class="ch-sub">il suo filo con Alfred</div></div><div class="ch-ic">&#9974;</div></div>
+      <div class="msgs">
+        <div class="daypill">Ieri sera</div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Con Cesare fuori, stasera la cena e' vostra: lei ed Ettore. E con la verifica di matematica andata bene, mi pare un bel momento per festeggiarlo un po'.
+          <div class="topic"><span>cena · famiglia</span><span>scuola · Ettore</span></div>
+            <div class="meta-line"><span class="mk half"></span><span class="time">18:36</span></div></div></div>
+        <div class="row right"><div class="bub out">cosa ha mangiato Ettore oggi a scuola?<div class="meta-line"><span class="time">18:36</span><span class="tick">&#10003;&#10003;</span></div></div></div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Oggi alla mensa: pasta al pomodoro, pollo con verdure e frutta fresca. 🍝
+          <div class="src">· dal menu della scuola</div>
+          <div class="topic"><span>scuola · Ettore</span></div>
+            <div class="meta-line"><span class="mk soon"></span><span class="time">18:36</span></div></div></div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Le lascio un promemoria domani mattina per chiedere a Cesare com'e' andata la riunione?
+          <div class="topic"><span>riunione · Cesare</span></div>
+            <div class="meta-line"><span class="mk on"></span><span class="time">18:37</span></div></div></div>
+        <div class="row right"><div class="bub out">sì grazie<div class="meta-line"><span class="time">18:37</span><span class="tick">&#10003;&#10003;</span></div></div></div>
+        <div class="daypill">Domani mattina</div>
+        <div class="row left"><div class="bub alf"><span class="who alf">Alfred</span>Buongiorno, mam. Il promemoria che mi ha chiesto: stamattina chieda a Cesare com'e' andata la riunione di ieri sera 😊
+          <div class="topic"><span>riunione · Cesare</span></div>
+            <div class="meta-line"><span class="mk on"></span><span class="time">07:00</span></div></div></div>
+      </div>
+      <div class="inputbar"><span class="plus">+</span><div class="field">Messaggio</div><span class="ic">&#127908;</span></div>
+    </div>
+
+    <!-- ETTORE (locked) -->
+    <div class="view" id="ettore">
+      <div class="statusbar"><span>18:38</span><span class="right">5G &#9646;&#9646;&#9646;&#9646;</span></div>
+      <div class="chathead"><button class="back" onclick="show('home')">&#8249;</button><div class="av e">E</div>
+        <div class="ch-meta"><div class="ch-name">Ettore</div><div class="ch-sub">filo privato spento</div></div><div class="ch-ic">&#9974;</div></div>
+      <div class="locked">
+        <div class="big">&#128274;</div>
+        <h3>Il filo privato con Ettore e' spento.</h3>
+        <p>Alfred non apre un canale con un minore di sua iniziativa. Si attiva solo col <b>consenso dei genitori</b>, con soglie piu' alte e tutto trasparente a entrambi.</p>
+        <div class="toggle"><span class="sw"></span> attiva il filo (decidono i genitori)</div>
+      </div>
+    </div>
+
+    <div class="overlay" id="cal">
+      <div class="calbox">
+        <div class="calhead">Luglio 2026</div>
+        <div class="weekdays"><span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="grid" id="calgrid"></div>
+        <div class="timewrap" id="timewrap"><div class="tlabel">orario</div><div class="wheel"><div class="sel-band"></div><div class="scroller" id="wheel"></div></div></div>
+        <div class="calfoot"><button onclick="closeCal()">Annulla</button><button class="savebtn" id="savebtn" onclick="calSave()">Aggiungi all'agenda</button></div>
+      </div>
+    </div>
+  </div></div>
+
+<script>
+  function show(id){
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});
+    document.getElementById(id).classList.add('active');
+    var m=document.querySelector('#'+id+' .msgs'); if(m) m.scrollTop=0;
+  }
+  function toggleGhost(btn){
+    var g=btn.nextElementSibling, open=g.classList.toggle('show');
+    btn.textContent = open ? 'Nascondi ›' : 'Cosa farebbe un assistente qualunque ›';
+  }
+
+  var selDay=null, selTime=null, calY, calM, todayD;
+  function openCal(){document.getElementById('cal').classList.add('show'); if(!document.getElementById('calgrid').childNodes.length){buildCal();buildWheel();}}
+  function closeCal(){document.getElementById('cal').classList.remove('show');}
+  function buildCal(){
+    var now=new Date(); calY=now.getFullYear(); calM=now.getMonth(); todayD=now.getDate();
+    var months=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    document.querySelector('.calhead').textContent=months[calM]+' '+calY;
+    var g=document.getElementById('calgrid'); g.innerHTML='';
+    var off=(new Date(calY,calM,1).getDay()+6)%7;
+    for(var i=0;i<off;i++){var e=document.createElement('div');e.className='day empty';g.appendChild(e);}
+    var dim=new Date(calY,calM+1,0).getDate();
+    for(var d=1;d<=dim;d++){(function(d){var c=document.createElement('div');c.className='day'+(d===todayD?' today':'');c.textContent=d;c.onclick=function(){pickDay(d,c);};g.appendChild(c);})(d);}
+  }
+  function pickDay(d,el){selDay=d;document.querySelectorAll('.day.sel').forEach(function(x){x.classList.remove('sel');});el.classList.add('sel');document.getElementById('timewrap').classList.add('show');ready();}
+  function buildWheel(){
+    var w=document.getElementById('wheel');
+    for(var h=0;h<24;h++){for(var m=0;m<60;m+=30){var tm=(''+h).padStart(2,'0')+':'+(''+m).padStart(2,'0');var o=document.createElement('div');o.className='opt';o.dataset.t=tm;o.textContent=tm;w.appendChild(o);}}
+    var snap=function(){var c=w.scrollTop+50; var opts=w.querySelectorAll('.opt'); var best=null,bd=1e9; opts.forEach(function(o){var d=Math.abs(o.offsetTop+16-(c+16)); if(d<bd){bd=d;best=o;}}); opts.forEach(function(o){o.classList.remove('on');}); if(best){best.classList.add('on'); selTime=best.dataset.t; ready();}};
+    var tmr; w.addEventListener('scroll',function(){clearTimeout(tmr);tmr=setTimeout(snap,80);snapVisual();});
+    function snapVisual(){var c=w.scrollTop+50;var opts=w.querySelectorAll('.opt');var best=null,bd=1e9;opts.forEach(function(o){var d=Math.abs(o.offsetTop+16-(c+16));if(d<bd){bd=d;best=o;}});opts.forEach(function(o){o.classList.remove('on');});if(best)best.classList.add('on');}
+    setTimeout(function(){var idx=14; w.scrollTop=idx*32; snap();},60); // 07:00 default
+  }
+  function ready(){var b=document.getElementById('savebtn');if(selDay&&selTime)b.classList.add('ready');else b.classList.remove('ready');}
+  function calSave(){
+    if(!(selDay&&selTime))return; closeCal();
+    var months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    window._chDay=selDay+' '+months[calM];
+    var sp=document.getElementById('spunto'); sp.classList.add('sched');
+    sp.innerHTML='<div class="tk"><span class="glow"></span>Alfred ha aggiornato l\'agenda ✓</div>'+
+      '<div class="bodyt">In agenda: <b>'+window._chDay+', '+selTime+'</b><br>ricordare a Cesare due parole a Ettore sulla verifica.</div>'+
+      '<button class="avanti" onclick="goMorning()">⏩ avanti al promemoria</button>';
+  }
+  function goMorning(){
+    document.getElementById('cesTime').textContent=selTime;
+    document.getElementById('cesPip').className='mk on';
+    document.getElementById('cesDay').textContent=(window._chDay||'domani')+' · mattina';
+    show('cesare');
+    var m=document.querySelector('#cesare .msgs'); if(m) m.scrollTop=m.scrollHeight;
+  }
+  function toggleLeg(){document.getElementById('legpop').classList.toggle('show');}
+  function dismissSpunto(){var sp=document.getElementById('spunto');sp.classList.add('sched');sp.innerHTML='<div class="tk"><span class="glow"></span>ci pensi tu ✓</div>';}
+</script>
+  <button class="infobtn" onclick="toggleLeg()">i</button>
+  <div class="legpop" id="legpop">
+    <div class="legrow"><span class="pip on"></span><b>oggi</b>, gia' attivo</div>
+    <div class="legrow"><span class="pip half"></span><b>in parte</b></div>
+    <div class="legrow"><span class="pip soon"></span><b>progetto</b></div>
+    <div class="legrow lk">&#128274; filo con Ettore: spento, solo col consenso dei genitori</div>
+  </div>
+</body>
+</html>
